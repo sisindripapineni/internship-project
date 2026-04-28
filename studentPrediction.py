@@ -1,53 +1,17 @@
 import streamlit as st
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
 
-# ----------------------------
-# Page Config
-# ----------------------------
-st.set_page_config(page_title="Student Score Predictor", page_icon="🎓")
+# Page settings
+st.set_page_config(
+    page_title="Student Math Score Prediction",
+    page_icon="🎓",
+    layout="centered"
+)
 
+# Title
 st.title("🎓 Student Math Score Prediction")
-st.write("Enter student details to predict the Math Score")
+st.write("Enter student details to predict the Math Score.")
 
-# ----------------------------
-# Sample Training Data
-# ----------------------------
-data = pd.DataFrame({
-    "gender": ["male", "female", "male", "female", "male", "female"],
-    "race/ethnicity": ["group A", "group B", "group C", "group D", "group E", "group A"],
-    "parental level of education": [
-        "high school",
-        "bachelor's degree",
-        "some college",
-        "master's degree",
-        "associate's degree",
-        "some high school"
-    ],
-    "lunch": ["standard", "free/reduced", "standard", "standard", "free/reduced", "standard"],
-    "test preparation course": ["none", "completed", "completed", "none", "completed", "none"],
-    "reading score": [72, 90, 65, 88, 76, 60],
-    "writing score": [70, 95, 63, 90, 78, 58],
-    "math score": [68, 92, 64, 89, 80, 55]
-})
-
-# ----------------------------
-# Convert Categorical Data
-# ----------------------------
-X = data.drop("math score", axis=1)
-y = data["math score"]
-
-X = pd.get_dummies(X)
-
-# ----------------------------
-# Train Model Directly
-# ----------------------------
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X, y)
-
-# ----------------------------
-# User Inputs
-# ----------------------------
+# Inputs
 gender = st.selectbox("Gender", ["male", "female"])
 
 race = st.selectbox(
@@ -56,7 +20,7 @@ race = st.selectbox(
 )
 
 parent_edu = st.selectbox(
-    "Parental Education",
+    "Parental Level of Education",
     [
         "some high school",
         "high school",
@@ -69,29 +33,38 @@ parent_edu = st.selectbox(
 
 lunch = st.selectbox("Lunch", ["standard", "free/reduced"])
 
-prep = st.selectbox("Test Preparation Course", ["none", "completed"])
+prep = st.selectbox(
+    "Test Preparation Course",
+    ["none", "completed"]
+)
 
 reading = st.slider("Reading Score", 0, 100, 50)
 writing = st.slider("Writing Score", 0, 100, 50)
 
-# ----------------------------
-# Prediction
-# ----------------------------
+# Predict button
 if st.button("Predict Math Score"):
 
-    input_data = pd.DataFrame([{
-        "gender": gender,
-        "race/ethnicity": race,
-        "parental level of education": parent_edu,
-        "lunch": lunch,
-        "test preparation course": prep,
-        "reading score": reading,
-        "writing score": writing
-    }])
+    # Base formula
+    prediction = (reading * 0.45) + (writing * 0.45)
 
-    input_data = pd.get_dummies(input_data)
-    input_data = input_data.reindex(columns=X.columns, fill_value=0)
+    # Adjustments
+    if gender == "male":
+        prediction += 2
 
-    prediction = model.predict(input_data)[0]
+    if prep == "completed":
+        prediction += 5
 
+    if lunch == "standard":
+        prediction += 3
+
+    if parent_edu in ["bachelor's degree", "master's degree"]:
+        prediction += 4
+
+    if race in ["group D", "group E"]:
+        prediction += 2
+
+    # Keep score in range
+    prediction = max(0, min(100, prediction))
+
+    # Output
     st.success(f"📘 Predicted Math Score: {prediction:.2f}")
