@@ -1,39 +1,62 @@
 import streamlit as st
 import pandas as pd
-import pickle
-import os
+from sklearn.ensemble import RandomForestRegressor
 
-# Page settings
-st.set_page_config(page_title="Student Score Predictor", page_icon="🎓", layout="centered")
+# ----------------------------
+# Page Config
+# ----------------------------
+st.set_page_config(page_title="Student Score Predictor", page_icon="🎓")
 
-# Title
 st.title("🎓 Student Math Score Prediction")
-st.write("Enter student details to predict the Math Score.")
+st.write("Enter student details to predict the Math Score")
 
-# Get current folder path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "student_model.pkl")
+# ----------------------------
+# Sample Training Data
+# ----------------------------
+data = pd.DataFrame({
+    "gender": ["male", "female", "male", "female", "male", "female"],
+    "race/ethnicity": ["group A", "group B", "group C", "group D", "group E", "group A"],
+    "parental level of education": [
+        "high school",
+        "bachelor's degree",
+        "some college",
+        "master's degree",
+        "associate's degree",
+        "some high school"
+    ],
+    "lunch": ["standard", "free/reduced", "standard", "standard", "free/reduced", "standard"],
+    "test preparation course": ["none", "completed", "completed", "none", "completed", "none"],
+    "reading score": [72, 90, 65, 88, 76, 60],
+    "writing score": [70, 95, 63, 90, 78, 58],
+    "math score": [68, 92, 64, 89, 80, 55]
+})
 
-# Check model file exists
-if not os.path.exists(model_path):
-    st.error("❌ student_model.pkl file not found!")
-    st.info("Make sure student_model.pkl is in the same folder as this Python file.")
-    st.stop()
+# ----------------------------
+# Convert Categorical Data
+# ----------------------------
+X = data.drop("math score", axis=1)
+y = data["math score"]
 
-# Load model
-with open(model_path, "rb") as f:
-    model = pickle.load(f)
+X = pd.get_dummies(X)
 
-# Input fields
+# ----------------------------
+# Train Model Directly
+# ----------------------------
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X, y)
+
+# ----------------------------
+# User Inputs
+# ----------------------------
 gender = st.selectbox("Gender", ["male", "female"])
 
-race_ethnicity = st.selectbox(
+race = st.selectbox(
     "Race / Ethnicity",
     ["group A", "group B", "group C", "group D", "group E"]
 )
 
 parent_edu = st.selectbox(
-    "Parental Level of Education",
+    "Parental Education",
     [
         "some high school",
         "high school",
@@ -46,30 +69,29 @@ parent_edu = st.selectbox(
 
 lunch = st.selectbox("Lunch", ["standard", "free/reduced"])
 
-test_prep = st.selectbox(
-    "Test Preparation Course",
-    ["none", "completed"]
-)
+prep = st.selectbox("Test Preparation Course", ["none", "completed"])
 
-reading_score = st.slider("Reading Score", 0, 100, 50)
-writing_score = st.slider("Writing Score", 0, 100, 50)
+reading = st.slider("Reading Score", 0, 100, 50)
+writing = st.slider("Writing Score", 0, 100, 50)
 
-# Prediction button
+# ----------------------------
+# Prediction
+# ----------------------------
 if st.button("Predict Math Score"):
 
     input_data = pd.DataFrame([{
         "gender": gender,
-        "race/ethnicity": race_ethnicity,
+        "race/ethnicity": race,
         "parental level of education": parent_edu,
         "lunch": lunch,
-        "test preparation course": test_prep,
-        "reading score": reading_score,
-        "writing score": writing_score
+        "test preparation course": prep,
+        "reading score": reading,
+        "writing score": writing
     }])
 
-    try:
-        prediction = model.predict(input_data)[0]
-        st.success(f"📘 Predicted Math Score: {prediction:.2f}")
-    except Exception as e:
-        st.error("⚠️ Prediction failed. Check model training columns.")
-        st.write(e)
+    input_data = pd.get_dummies(input_data)
+    input_data = input_data.reindex(columns=X.columns, fill_value=0)
+
+    prediction = model.predict(input_data)[0]
+
+    st.success(f"📘 Predicted Math Score: {prediction:.2f}")
